@@ -5,6 +5,8 @@ Monitors course registration status and alerts when courses open up.
 """
 
 import time
+import os
+import sys
 from datetime import datetime
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
@@ -13,6 +15,9 @@ COURSE_URLS = [
     "https://utdirect.utexas.edu/apps/registrar/course_schedule/20262/56615/",
     "https://utdirect.utexas.edu/apps/registrar/course_schedule/20262/56605/"
 ]
+
+# Registration page URL to open when a course opens
+REGISTRATION_URL = "https://utdirect.utexas.edu/registration/registration.WBX"
 
 # Check interval in minutes
 CHECK_INTERVAL_MINUTES = 5
@@ -29,6 +34,38 @@ def log(message):
     """Print timestamped log message."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] {message}")
+
+
+def play_alarm(course_name, status, page):
+    """Play a loud alarm when a course opens up and open registration page."""
+    log("🔔 PLAYING ALARM...")
+    
+    # Play system alert sound multiple times
+    for _ in range(5):
+        # Terminal bell
+        print("\a", end="", flush=True)
+        # macOS system sound (Sosumi is a loud alert sound)
+        os.system('afplay /System/Library/Sounds/Sosumi.aiff 2>/dev/null &')
+        time.sleep(0.3)
+    
+    # Speak alert message
+    message = f"Alert! {course_name} is now {status}. Check registration immediately!"
+    os.system(f'say "{message}" &')
+    
+    # Also try playing a few more system sounds
+    os.system('afplay /System/Library/Sounds/Glass.aiff 2>/dev/null &')
+    time.sleep(0.5)
+    os.system('afplay /System/Library/Sounds/Basso.aiff 2>/dev/null &')
+    
+    # Open registration page in a new tab
+    try:
+        log(f"Opening registration page in a new tab: {REGISTRATION_URL}")
+        with page.expect_popup() as popup_info:
+            page.evaluate(f'window.open("{REGISTRATION_URL}", "_blank")')
+        registration_page = popup_info.value
+        log("✓ Registration page opened in new tab")
+    except Exception as e:
+        log(f"WARNING: Could not open registration page: {e}")
 
 
 def get_status(page):
@@ -161,14 +198,18 @@ def monitor_courses():
                 log("Failed to complete login. Exiting.")
                 return
             
-            # Step 2: Navigate to second course (should already be logged in)
+            # Step 2: Navigate to second course in a new tab (should already be logged in)
             log("\n" + "=" * 60)
-            log("Opening second course page...")
-            page2 = context.new_page()
+            log("Opening second course page in a new tab...")
+            # Use JavaScript to open in a new tab, then wait for the popup
+            with page1.expect_popup() as popup_info:
+                page1.evaluate(f"window.open('{COURSE_URLS[1]}', '_blank')")
+            page2 = popup_info.value
             pages.append(page2)
             course_names.append("Course 56605")
             
-            page2.goto(COURSE_URLS[1], wait_until="networkidle", timeout=30000)
+            # Wait for the page to load
+            page2.wait_for_load_state("networkidle", timeout=30000)
             
             # Verify second page loaded correctly
             status2 = get_status(page2)
@@ -215,10 +256,8 @@ def monitor_courses():
                             # Update initial status so we don't alert again for same change
                             initial_statuses[name] = status
                             
-                            # Keep browser open and make a sound/notification
-                            # You can add notification logic here (e.g., beep, desktop notification)
-                            import sys
-                            print("\a", end="", flush=True)  # Terminal bell
+                            # Play loud alarm and open registration page
+                            play_alarm(name, status, page)
                 
                 log(f"\nNext check in {CHECK_INTERVAL_MINUTES} minutes...")
                 time.sleep(CHECK_INTERVAL_SECONDS)
