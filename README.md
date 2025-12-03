@@ -42,7 +42,7 @@ python3.11 app.py
 
 2. Open your browser and navigate to:
 ```
-http://localhost:5000
+http://localhost:3000
 ```
 
 3. In the web interface:
