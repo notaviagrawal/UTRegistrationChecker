@@ -1,14 +1,16 @@
 # UT Registration Checker
 
-A Python script that monitors UT Austin course registration status and alerts you when courses open up.
+A Python script and web interface that monitors UT Austin course registration status and alerts you when courses open up.
 
 ## Features
 
-- Opens a browser for you to login manually
-- Automatically detects when login is complete
-- Monitors two course pages simultaneously
-- Checks status every 5 minutes
-- Alerts when status changes from "closed" to "open" or "waitlist"
+- **Web Interface**: Clean, modern web UI to configure and monitor courses
+- **Interactive Setup**: Enter semester and course codes through the interface
+- **Automatic Monitoring**: Opens a browser for you to login manually
+- **Smart Detection**: Automatically detects when login is complete
+- **Multi-Course Support**: Monitor any number of courses simultaneously
+- **Real-time Alerts**: Loud alarms and notifications when courses open
+- **Auto-Registration Link**: Opens registration page automatically when a course opens
 
 ## Setup
 
@@ -31,24 +33,40 @@ python3.11 -m playwright install chromium
 
 ## Usage
 
-Run the script:
+### Web Interface (Recommended)
+
+1. Start the web server:
+```bash
+python3.11 app.py
+```
+
+2. Open your browser and navigate to:
+```
+http://localhost:5000
+```
+
+3. In the web interface:
+   - Enter the semester code (e.g., `20262` for Spring 2026)
+   - Add course codes (the number at the end of the URL, e.g., `56615`, `56605`)
+   - Click "Save Configuration"
+   - Click "Start Monitoring" to begin
+
+### Command Line Interface
+
+Run the script directly:
 ```bash
 python3.11 registration_checker.py
 ```
 
-Or if you have Python 3.11 set as your default:
-```bash
-python registration_checker.py
-```
-
 The script will:
-1. Open a browser window
-2. Navigate to the first course page
-3. **Wait for you to login manually** (you'll see the login page)
-4. Once you login, it automatically detects and continues
-5. Opens the second course page (you're already logged in)
-6. Starts monitoring both courses every 5 minutes
-7. Alerts you when any course status changes from "closed"
+1. Prompt you for semester code and course codes
+2. Open a browser window
+3. Navigate to the first course page
+4. **Wait for you to login manually** (you'll see the login page)
+5. Once you login, it automatically detects and continues
+6. Opens additional course pages in new tabs (you're already logged in)
+7. Starts monitoring all courses every 5 minutes
+8. Alerts you when any course status changes from "closed"
 
 Press `Ctrl+C` to stop monitoring.
 

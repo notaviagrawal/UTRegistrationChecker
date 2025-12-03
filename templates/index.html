@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UT Registration Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .course-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .course-input-group input {
+            flex: 1;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff3838;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .course-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .course-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .course-tag .remove {
+            cursor: pointer;
+            opacity: 0.8;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .course-tag .remove:hover {
+            opacity: 1;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-badge.closed {
+            background: #ff4757;
+            color: white;
+        }
+
+        .status-badge.open {
+            background: #2ed573;
+            color: white;
+        }
+
+        .status-badge.waitlist {
+            background: #ffa502;
+            color: white;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .monitoring-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #2ed573;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 UT Registration Checker</h1>
+            <p>Monitor course availability and get notified when spots open</p>
+        </div>
+
+        <div class="content">
+            <div id="alert" class="alert"></div>
+
+            <div class="section">
+                <div class="section-title">Course Configuration</div>
+                
+                <div class="form-group">
+                    <label for="semester">Semester Code</label>
+                    <input type="text" id="semester" placeholder="e.g., 20262 for Spring 2026" value="{{ semester }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="courseCode">Course Code</label>
+                    <div class="course-input-group">
+                        <input type="text" id="courseCode" placeholder="Enter course code (e.g., 56615)">
+                        <button class="btn btn-primary btn-small" onclick="addCourse()">Add</button>
+                    </div>
+                    <div class="course-list" id="courseList">
+                        {% for course in courses %}
+                        <div class="course-tag">
+                            {{ course }}
+                            <span class="remove" onclick="removeCourse('{{ course }}')">×</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveCourses()">💾 Save Configuration</button>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Monitoring Status</div>
+                <div class="status-card">
+                    <div id="statusContent">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <p>No courses configured. Add courses above to start monitoring.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="startMonitoring()">▶️ Start Monitoring</button>
+                    <button class="btn btn-danger" onclick="stopMonitoring()">⏹️ Stop Monitoring</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let courses = {{ courses | tojson }};
+
+        function addCourse() {
+            const input = document.getElementById('courseCode');
+            const code = input.value.trim();
+            
+            if (!code) {
+                showAlert('Please enter a course code', 'error');
+                return;
+            }
+
+            if (courses.includes(code)) {
+                showAlert('Course code already added', 'error');
+                return;
+            }
+
+            courses.push(code);
+            input.value = '';
+            updateCourseList();
+        }
+
+        function removeCourse(code) {
+            courses = courses.filter(c => c !== code);
+            updateCourseList();
+        }
+
+        function updateCourseList() {
+            const list = document.getElementById('courseList');
+            list.innerHTML = courses.map(code => `
+                <div class="course-tag">
+                    ${code}
+                    <span class="remove" onclick="removeCourse('${code}')">×</span>
+                </div>
+            `).join('');
+        }
+
+        function showAlert(message, type = 'success') {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert ${type} show`;
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 3000);
+        }
+
+        async function saveCourses() {
+            const semester = document.getElementById('semester').value.trim();
+            
+            if (!semester) {
+                showAlert('Please enter a semester code', 'error');
+                return;
+            }
+
+            if (courses.length === 0) {
+                showAlert('Please add at least one course code', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/courses', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        semester: semester,
+                        courses: courses
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Configuration saved successfully!', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to save configuration', 'error');
+                }
+            } catch (error) {
+                showAlert('Error saving configuration', 'error');
+            }
+        }
+
+        async function startMonitoring() {
+            showAlert('Starting monitoring... This will open a browser window for login.', 'success');
+            // This would trigger the actual monitoring script
+        }
+
+        function stopMonitoring() {
+            showAlert('Stopping monitoring...', 'success');
+            // This would stop the monitoring script
+        }
+
+        // Allow Enter key to add course
+        document.getElementById('courseCode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addCourse();
+            }
+        });
+    </script>
+</body>
+</html>
+
