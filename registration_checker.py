@@ -10,11 +10,8 @@ import sys
 from datetime import datetime
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-# Course URLs to monitor
-COURSE_URLS = [
-    "https://utdirect.utexas.edu/apps/registrar/course_schedule/20262/56615/",
-    "https://utdirect.utexas.edu/apps/registrar/course_schedule/20262/56605/"
-]
+# Base URL for course schedule
+BASE_COURSE_URL = "https://utdirect.utexas.edu/apps/registrar/course_schedule"
 
 # Registration page URL to open when a course opens
 REGISTRATION_URL = "https://utdirect.utexas.edu/registration/registration.WBX"
@@ -34,6 +31,55 @@ def log(message):
     """Print timestamped log message."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] {message}")
+
+
+def get_course_codes():
+    """Interactively get course codes from the user."""
+    print("\n" + "=" * 60)
+    print("UT Registration Checker - Course Setup")
+    print("=" * 60)
+    
+    # Get semester code
+    print("\nEnter the semester code (e.g., 20262 for Spring 2026):")
+    semester = input("Semester code: ").strip()
+    
+    if not semester:
+        print("ERROR: Semester code is required. Exiting.")
+        return None, []
+    
+    # Get course codes
+    course_codes = []
+    print(f"\nEnter course codes (the number at the end of the URL, e.g., 56615, 56605)")
+    print("Press Enter with no input when done adding courses.\n")
+    
+    while True:
+        course_code = input(f"Course code #{len(course_codes) + 1} (or press Enter to finish): ").strip()
+        
+        if not course_code:
+            if len(course_codes) == 0:
+                print("ERROR: You must enter at least one course code. Exiting.")
+                return None, []
+            break
+        
+        # Validate it's a number
+        if not course_code.isdigit():
+            print(f"WARNING: '{course_code}' is not a valid course code (should be numbers only). Skipping.")
+            continue
+        
+        course_codes.append(course_code)
+        print(f"✓ Added course code: {course_code}")
+    
+    print(f"\n✓ Setup complete: {len(course_codes)} course(s) to monitor")
+    return semester, course_codes
+
+
+def build_course_urls(semester, course_codes):
+    """Build course URLs from semester and course codes."""
+    urls = []
+    for code in course_codes:
+        url = f"{BASE_COURSE_URL}/{semester}/{code}/"
+        urls.append(url)
+    return urls
 
 
 def play_alarm(course_name, status, page):
@@ -145,8 +191,18 @@ def check_course_status(page, url, course_name):
 
 def monitor_courses():
     """Main monitoring function."""
+    # Get course codes from user
+    semester, course_codes = get_course_codes()
+    if not semester or not course_codes:
+        return
+    
+    # Build URLs from course codes
+    course_urls = build_course_urls(semester, course_codes)
+    course_names = [f"Course {code}" for code in course_codes]
+    
     log("=" * 60)
     log("UT Registration Checker Starting")
+    log(f"Monitoring {len(course_codes)} course(s): {', '.join(course_codes)}")
     log("=" * 60)
     
     with sync_playwright() as p:
@@ -184,39 +240,47 @@ def monitor_courses():
         
         context = browser.new_context()
         
-        # Store pages for both courses
+        # Store pages for all courses
         pages = []
-        course_names = []
         
         try:
             # Step 1: Navigate to first course and wait for login
+            log(f"\nOpening first course: {course_names[0]} ({course_codes[0]})")
             page1 = context.new_page()
             pages.append(page1)
-            course_names.append("Course 56615")
             
-            if not wait_for_login(page1, COURSE_URLS[0]):
+            if not wait_for_login(page1, course_urls[0]):
                 log("Failed to complete login. Exiting.")
                 return
             
-            # Step 2: Navigate to second course in a new tab (should already be logged in)
-            log("\n" + "=" * 60)
-            log("Opening second course page in a new tab...")
-            # Use JavaScript to open in a new tab, then wait for the popup
-            with page1.expect_popup() as popup_info:
-                page1.evaluate(f"window.open('{COURSE_URLS[1]}', '_blank')")
-            page2 = popup_info.value
-            pages.append(page2)
-            course_names.append("Course 56605")
-            
-            # Wait for the page to load
-            page2.wait_for_load_state("networkidle", timeout=30000)
-            
-            # Verify second page loaded correctly
-            status2 = get_status(page2)
-            if status2:
-                log(f"✓ Second course page loaded. Status: {status2}")
-            else:
-                log("WARNING: Could not verify second course page. Continuing anyway...")
+            # Step 2: Open remaining courses in new tabs (should already be logged in)
+            if len(course_codes) > 1:
+                log("\n" + "=" * 60)
+                log("Opening additional course pages in new tabs...")
+                for i in range(1, len(course_codes)):
+                    log(f"Opening course {i+1}/{len(course_codes)}: {course_names[i]} ({course_codes[i]})")
+                    try:
+                        # Use JavaScript to open in a new tab, then wait for the popup
+                        with page1.expect_popup() as popup_info:
+                            page1.evaluate(f"window.open('{course_urls[i]}', '_blank')")
+                        new_page = popup_info.value
+                        pages.append(new_page)
+                        
+                        # Wait for the page to load
+                        new_page.wait_for_load_state("networkidle", timeout=30000)
+                        
+                        # Verify page loaded correctly
+                        status = get_status(new_page)
+                        if status:
+                            log(f"✓ Course {course_codes[i]} loaded. Status: {status}")
+                        else:
+                            log(f"WARNING: Could not verify course {course_codes[i]}. Continuing anyway...")
+                    except Exception as e:
+                        log(f"ERROR: Failed to open course {course_codes[i]}: {e}")
+                        # Create page manually as fallback
+                        new_page = context.new_page()
+                        new_page.goto(course_urls[i], wait_until="networkidle", timeout=30000)
+                        pages.append(new_page)
             
             # Step 3: Get initial statuses
             log("\n" + "=" * 60)
@@ -224,7 +288,7 @@ def monitor_courses():
             log("=" * 60)
             initial_statuses = {}
             for i, (page, name) in enumerate(zip(pages, course_names)):
-                status = check_course_status(page, COURSE_URLS[i], name)
+                status = check_course_status(page, course_urls[i], name)
                 initial_statuses[name] = status
             
             # Step 4: Start monitoring loop
@@ -239,7 +303,7 @@ def monitor_courses():
                 log(f"\n--- Check #{check_count} ---")
                 
                 for i, (page, name) in enumerate(zip(pages, course_names)):
-                    status = check_course_status(page, COURSE_URLS[i], name)
+                    status = check_course_status(page, course_urls[i], name)
                     
                     if status:
                         initial_status = initial_statuses.get(name, "unknown")
@@ -250,7 +314,7 @@ def monitor_courses():
                             log(f"🎉 ALERT: {name} STATUS CHANGED!")
                             log(f"   Previous: {initial_status}")
                             log(f"   Current:  {status}")
-                            log(f"   URL: {COURSE_URLS[i]}")
+                            log(f"   URL: {course_urls[i]}")
                             log("=" * 60)
                             
                             # Update initial status so we don't alert again for same change
